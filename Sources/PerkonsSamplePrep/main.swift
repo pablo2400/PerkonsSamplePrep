@@ -41,6 +41,20 @@ final class ConverterState: @unchecked Sendable {
 final class SampleTableView: NSTableView {
     var onSpace: (() -> Void)?
     var onDelete: (() -> Void)?
+    var onFiles: (([URL]) -> Void)?
+    var dropHighlighted = false {
+        didSet { needsDisplay = true }
+    }
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        registerForDraggedTypes([.fileURL])
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        registerForDraggedTypes([.fileURL])
+    }
 
     override var acceptsFirstResponder: Bool { true }
 
@@ -53,6 +67,24 @@ final class SampleTableView: NSTableView {
         default:
             super.keyDown(with: event)
         }
+    }
+
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        dropHighlighted = true
+        return .copy
+    }
+
+    override func draggingExited(_ sender: NSDraggingInfo?) {
+        dropHighlighted = false
+    }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        dropHighlighted = false
+        guard let items = sender.draggingPasteboard.readObjects(forClasses: [NSURL.self]) as? [URL] else {
+            return false
+        }
+        onFiles?(items)
+        return true
     }
 }
 
@@ -162,10 +194,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         root.edgeInsets = NSEdgeInsets(top: 4, left: 18, bottom: 18, right: 18)
         root.translatesAutoresizingMaskIntoConstraints = false
 
+        let formatInfo = NSTextField(labelWithString: "PERKONS user samples load only on Voice 4 / Algorithm 3; output is always 3 files: mono 16-bit WAV, 48 kHz, max 256 KB total.")
+        formatInfo.textColor = .secondaryLabelColor
+        formatInfo.font = .systemFont(ofSize: 12)
+        formatInfo.lineBreakMode = .byTruncatingTail
+
         let drop = DropView()
         drop.translatesAutoresizingMaskIntoConstraints = false
         drop.heightAnchor.constraint(equalToConstant: 132).isActive = true
-        drop.onFiles = { [weak self] urls in self?.addFiles(urls) }
+        drop.onFiles = { [weak self] urls in self?.addFiles(urls, allowReplacement: true) }
         let dropLabel = NSTextField(labelWithString: "Drop WAV files here")
         dropLabel.font = .systemFont(ofSize: 18, weight: .medium)
         dropLabel.alignment = .center
@@ -228,6 +265,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         openHistoryButton.target = self
         openHistoryButton.action = #selector(openHistoryFolder)
 
+        root.addArrangedSubview(formatInfo)
         root.addArrangedSubview(drop)
         root.addArrangedSubview(fileScroll)
         root.addArrangedSubview(controls)
@@ -260,6 +298,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         fileTable.allowsMultipleSelection = false
         fileTable.onSpace = { [weak self] in self?.previewSelectedFile() }
         fileTable.onDelete = { [weak self] in self?.removeSelectedFile() }
+        fileTable.onFiles = { [weak self] urls in self?.addFiles(urls, allowReplacement: true) }
         fileTable.addTableColumn(column("play", "", width: 34))
         fileTable.addTableColumn(column("file", "File", width: 520))
         fileTable.addTableColumn(column("duration", "Duration", width: 120))
@@ -301,17 +340,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         panel.allowsMultipleSelection = true
         panel.message = "Choose WAV files. The set must contain exactly 3 files before conversion."
         guard panel.runModal() == .OK else { return }
-        addFiles(panel.urls)
+        addFiles(panel.urls, allowReplacement: true)
     }
 
-    private func addFiles(_ urls: [URL]) {
+    private func addFiles(_ urls: [URL], allowReplacement: Bool = false) {
         let wavs = urls.filter { $0.pathExtension.lowercased() == "wav" }
         guard !wavs.isEmpty else {
             setStatus("No WAV files found.", error: true)
             return
         }
+        guard wavs.count <= 3 else {
+            setStatus("The set can contain only 3 WAV files.", error: true)
+            return
+        }
+
         guard samples.count + wavs.count <= 3 else {
-            setStatus("The set can contain only 3 WAV files. Remove one before adding another.", error: true)
+            guard allowReplacement else {
+                setStatus("The set can contain only 3 WAV files. Remove one before adding another.", error: true)
+                return
+            }
+            replaceInputFiles(with: wavs)
             return
         }
 
@@ -332,6 +380,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
             setStatus("Could not read WAV files: \(error.localizedDescription)", error: true)
         }
         updateButtons()
+    }
+
+    private func replaceInputFiles(with urls: [URL]) {
+        do {
+            let newSamples = try urls.map { url in
+                let file = try AVAudioFile(forReading: url)
+                let duration = Double(file.length) / file.fileFormat.sampleRate
+                return SourceSample(url: url, name: url.lastPathComponent, duration: duration)
+            }
+
+            if newSamples.count == 1, fileTable.selectedRow >= 0, fileTable.selectedRow < samples.count {
+                let row = fileTable.selectedRow
+                guard confirmInputReplacement(message: "Replace selected sample \"\(samples[row].name)\" with \"\(newSamples[0].name)\"?") else {
+                    setStatus("Drop cancelled.", error: false)
+                    return
+                }
+                stopPreview()
+                samples[row] = newSamples[0]
+                fileTable.reloadData()
+                fileTable.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
+                setStatus("Replaced selected sample.", error: false)
+            } else {
+                guard confirmInputReplacement(message: "There are not enough empty slots. Replace the current input list with the dropped WAV files?") else {
+                    setStatus("Drop cancelled.", error: false)
+                    return
+                }
+                stopPreview()
+                samples = newSamples
+                fileTable.reloadData()
+                setStatus("\(samples.count)/3 files added.", error: samples.count != 3)
+            }
+            updateButtons()
+        } catch {
+            setStatus("Could not read WAV files: \(error.localizedDescription)", error: true)
+        }
+    }
+
+    private func confirmInputReplacement(message: String) -> Bool {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "Replace input sample?"
+        alert.informativeText = message
+        alert.addButton(withTitle: "Replace")
+        alert.addButton(withTitle: "Cancel")
+        return alert.runModal() == .alertFirstButtonReturn
     }
 
     @objc private func clearFiles() {
