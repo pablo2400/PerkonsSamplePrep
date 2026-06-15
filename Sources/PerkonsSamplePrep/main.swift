@@ -156,7 +156,13 @@ final class DropView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         NSColor.windowBackgroundColor.setFill()
         dirtyRect.fill()
-        let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 1, dy: 1), xRadius: 8, yRadius: 8)
+        let dropBounds = NSRect(
+            x: bounds.minX + 1,
+            y: bounds.minY + 1,
+            width: bounds.width - 2,
+            height: bounds.height - 29
+        )
+        let path = NSBezierPath(roundedRect: dropBounds, xRadius: 8, yRadius: 8)
         (highlighted ? NSColor.controlAccentColor : NSColor.separatorColor).setStroke()
         path.lineWidth = highlighted ? 3 : 1
         path.stroke()
@@ -178,59 +184,6 @@ final class DropView: NSView {
         }
         onFiles?(items)
         return true
-    }
-}
-
-@MainActor
-final class FormatInfoView: NSView {
-    private let text = "PERKONS sample converter: Voice 4 / Algorithm 3 only; output is 1.wav, 2.wav, 3.wav, mono 16-bit WAV, 48 kHz, max 256 KB total."
-
-    override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
-        wantsLayer = true
-        setContentCompressionResistancePriority(.required, for: .vertical)
-        setContentHuggingPriority(.required, for: .vertical)
-    }
-
-    required init?(coder: NSCoder) {
-        super.init(coder: coder)
-        wantsLayer = true
-        setContentCompressionResistancePriority(.required, for: .vertical)
-        setContentHuggingPriority(.required, for: .vertical)
-    }
-
-    override var intrinsicContentSize: NSSize {
-        NSSize(width: NSView.noIntrinsicMetric, height: 28)
-    }
-
-    override func draw(_ dirtyRect: NSRect) {
-        super.draw(dirtyRect)
-
-        let background = NSBezierPath(roundedRect: bounds.insetBy(dx: 0.5, dy: 0.5), xRadius: 6, yRadius: 6)
-        NSColor.controlBackgroundColor.setFill()
-        background.fill()
-        NSColor.separatorColor.setStroke()
-        background.lineWidth = 1
-        background.stroke()
-
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.lineBreakMode = .byTruncatingTail
-        paragraph.alignment = .left
-
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 12, weight: .medium),
-            .foregroundColor: NSColor.labelColor,
-            .paragraphStyle: paragraph
-        ]
-        let attributedText = NSAttributedString(string: text, attributes: attributes)
-        let textHeight = attributedText.size().height
-        let textRect = NSRect(
-            x: 10,
-            y: max(0, (bounds.height - textHeight) / 2),
-            width: max(0, bounds.width - 20),
-            height: textHeight
-        )
-        attributedText.draw(in: textRect)
     }
 }
 
@@ -290,27 +243,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
 
         let root = NSStackView()
         root.orientation = .vertical
+        root.alignment = .leading
         root.spacing = 10
         root.edgeInsets = NSEdgeInsets(top: 4, left: 18, bottom: 18, right: 18)
         root.translatesAutoresizingMaskIntoConstraints = false
 
-        let formatInfo = FormatInfoView()
+        let formatInfo = NSTextField(
+            labelWithString: "PERKONS sample converter: Voice 4 / Algorithm 3 only; output is 1.wav, 2.wav, 3.wav, mono 16-bit WAV, 48 kHz, max 256 KB total."
+        )
+        formatInfo.font = .systemFont(ofSize: 12, weight: .medium)
+        formatInfo.textColor = .labelColor
+        formatInfo.lineBreakMode = .byTruncatingTail
+        formatInfo.maximumNumberOfLines = 1
         formatInfo.translatesAutoresizingMaskIntoConstraints = false
-        formatInfo.heightAnchor.constraint(equalToConstant: 28).isActive = true
+        formatInfo.heightAnchor.constraint(equalToConstant: 18).isActive = true
         formatInfo.setContentCompressionResistancePriority(.required, for: .vertical)
 
         let drop = DropView()
         drop.translatesAutoresizingMaskIntoConstraints = false
-        drop.heightAnchor.constraint(equalToConstant: 120).isActive = true
+        drop.heightAnchor.constraint(equalToConstant: 148).isActive = true
         drop.onFiles = { [weak self] urls in self?.addFiles(urls, allowReplacement: true) }
         let dropLabel = NSTextField(labelWithString: "Drop WAV files here")
         dropLabel.font = .systemFont(ofSize: 18, weight: .medium)
         dropLabel.alignment = .center
         drop.addSubview(dropLabel)
+        drop.addSubview(formatInfo)
         dropLabel.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             dropLabel.centerXAnchor.constraint(equalTo: drop.centerXAnchor),
-            dropLabel.centerYAnchor.constraint(equalTo: drop.centerYAnchor)
+            dropLabel.centerYAnchor.constraint(equalTo: drop.centerYAnchor, constant: -14),
+            formatInfo.leadingAnchor.constraint(equalTo: drop.leadingAnchor),
+            formatInfo.trailingAnchor.constraint(equalTo: drop.trailingAnchor),
+            formatInfo.topAnchor.constraint(equalTo: drop.topAnchor)
         ])
 
         configureFileTable()
@@ -366,7 +330,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         openHistoryButton.target = self
         openHistoryButton.action = #selector(openHistoryFolder)
 
-        root.addArrangedSubview(formatInfo)
         root.addArrangedSubview(drop)
         root.addArrangedSubview(fileScroll)
         root.addArrangedSubview(controls)
@@ -376,6 +339,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         root.addArrangedSubview(historyTitle)
         root.addArrangedSubview(historyScroll)
         root.addArrangedSubview(historyControls)
+
+        NSLayoutConstraint.activate([
+            drop.widthAnchor.constraint(equalTo: root.widthAnchor, constant: -36),
+            fileScroll.widthAnchor.constraint(equalTo: root.widthAnchor, constant: -36),
+            outputScroll.widthAnchor.constraint(equalTo: root.widthAnchor, constant: -36),
+            historyScroll.widthAnchor.constraint(equalTo: root.widthAnchor, constant: -36)
+        ])
 
         let content = NSView()
         window.contentView = content
