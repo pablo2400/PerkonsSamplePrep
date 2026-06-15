@@ -145,14 +145,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
 
     private func buildWindow() {
         window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 820, height: 560),
+            contentRect: NSRect(x: 0, y: 0, width: 820, height: 680),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
         window.title = "PERKONS HD-01 Sample Prep"
-        window.minSize = NSSize(width: 820, height: 560)
-        window.setContentSize(NSSize(width: 820, height: 560))
+        window.minSize = NSSize(width: 820, height: 680)
+        window.setContentSize(NSSize(width: 820, height: 680))
         window.center()
 
         let root = NSStackView()
