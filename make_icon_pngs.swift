@@ -34,9 +34,9 @@ let deviceCrop = CGRect(
 for (name, size) in sizes {
     let rect = NSRect(x: 0, y: 0, width: size, height: size)
     let sizeValue = CGFloat(size)
-    let iconRect = rect.insetBy(dx: sizeValue * 0.10, dy: sizeValue * 0.10)
-    let cornerRadius = sizeValue * 0.18
-    let deviceRect = iconRect.insetBy(dx: sizeValue * 0.035, dy: sizeValue * 0.035)
+    let iconRect = rect.insetBy(dx: sizeValue * 0.22, dy: sizeValue * 0.22)
+    let cornerRadius = sizeValue * 0.08
+    let deviceRect = iconRect.insetBy(dx: sizeValue * 0.02, dy: sizeValue * 0.02)
     let bitmap = NSBitmapImageRep(
         bitmapDataPlanes: nil,
         pixelsWide: size,
@@ -55,16 +55,12 @@ for (name, size) in sizes {
     rect.fill()
 
     let shadow = NSShadow()
-    shadow.shadowColor = NSColor.black.withAlphaComponent(0.26)
-    shadow.shadowBlurRadius = max(1, sizeValue * 0.035)
-    shadow.shadowOffset = NSSize(width: 0, height: -sizeValue * 0.018)
+    shadow.shadowColor = NSColor.black.withAlphaComponent(0.30)
+    shadow.shadowBlurRadius = max(1, sizeValue * 0.025)
+    shadow.shadowOffset = NSSize(width: 0, height: -sizeValue * 0.012)
     shadow.set()
 
     let plate = NSBezierPath(roundedRect: iconRect, xRadius: cornerRadius, yRadius: cornerRadius)
-    NSColor(calibratedWhite: 0.035, alpha: 1.0).setFill()
-    plate.fill()
-    NSGraphicsContext.current?.cgContext.setShadow(offset: .zero, blur: 0, color: nil)
-
     NSGraphicsContext.current?.cgContext.saveGState()
     plate.addClip()
     if let cropped = cgImage.cropping(to: deviceCrop) {
@@ -81,10 +77,6 @@ for (name, size) in sizes {
         croppedImage.draw(in: drawRect, from: .zero, operation: .sourceOver, fraction: 1.0)
     }
     NSGraphicsContext.current?.cgContext.restoreGState()
-
-    NSColor.white.withAlphaComponent(0.10).setStroke()
-    plate.lineWidth = max(1, sizeValue * 0.006)
-    plate.stroke()
 
     NSGraphicsContext.restoreGraphicsState()
     let data = bitmap.representation(using: .png, properties: [:])!
