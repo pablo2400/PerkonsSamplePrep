@@ -182,6 +182,59 @@ final class DropView: NSView {
 }
 
 @MainActor
+final class FormatInfoView: NSView {
+    private let text = "PERKONS sample converter: Voice 4 / Algorithm 3 only; output is 1.wav, 2.wav, 3.wav, mono 16-bit WAV, 48 kHz, max 256 KB total."
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        setContentCompressionResistancePriority(.required, for: .vertical)
+        setContentHuggingPriority(.required, for: .vertical)
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        wantsLayer = true
+        setContentCompressionResistancePriority(.required, for: .vertical)
+        setContentHuggingPriority(.required, for: .vertical)
+    }
+
+    override var intrinsicContentSize: NSSize {
+        NSSize(width: NSView.noIntrinsicMetric, height: 28)
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+
+        let background = NSBezierPath(roundedRect: bounds.insetBy(dx: 0.5, dy: 0.5), xRadius: 6, yRadius: 6)
+        NSColor.controlBackgroundColor.setFill()
+        background.fill()
+        NSColor.separatorColor.setStroke()
+        background.lineWidth = 1
+        background.stroke()
+
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineBreakMode = .byTruncatingTail
+        paragraph.alignment = .left
+
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 12, weight: .medium),
+            .foregroundColor: NSColor.labelColor,
+            .paragraphStyle: paragraph
+        ]
+        let attributedText = NSAttributedString(string: text, attributes: attributes)
+        let textHeight = attributedText.size().height
+        let textRect = NSRect(
+            x: 10,
+            y: max(0, (bounds.height - textHeight) / 2),
+            width: max(0, bounds.width - 20),
+            height: textHeight
+        )
+        attributedText.draw(in: textRect)
+    }
+}
+
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTableViewDelegate {
     private var window: NSWindow!
     private let fileTable = SampleTableView()
@@ -241,13 +294,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         root.edgeInsets = NSEdgeInsets(top: 4, left: 18, bottom: 18, right: 18)
         root.translatesAutoresizingMaskIntoConstraints = false
 
-        let formatInfo = NSTextField(labelWithString: "PERKONS sample converter: Voice 4 / Algorithm 3 only; output is 1.wav, 2.wav, 3.wav, mono 16-bit WAV, 48 kHz, max 256 KB total.")
-        formatInfo.textColor = .labelColor
-        formatInfo.font = .systemFont(ofSize: 12, weight: .medium)
-        formatInfo.alignment = .left
-        formatInfo.lineBreakMode = .byTruncatingTail
+        let formatInfo = FormatInfoView()
         formatInfo.translatesAutoresizingMaskIntoConstraints = false
-        formatInfo.heightAnchor.constraint(equalToConstant: 18).isActive = true
+        formatInfo.heightAnchor.constraint(equalToConstant: 28).isActive = true
         formatInfo.setContentCompressionResistancePriority(.required, for: .vertical)
 
         let drop = DropView()
