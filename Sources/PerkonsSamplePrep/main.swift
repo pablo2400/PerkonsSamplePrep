@@ -89,6 +89,53 @@ final class SampleTableView: NSTableView {
 }
 
 @MainActor
+final class FileDropScrollView: NSScrollView {
+    var onFiles: (([URL]) -> Void)?
+    private var dropHighlighted = false {
+        didSet { needsDisplay = true }
+    }
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        registerForDraggedTypes([.fileURL])
+        wantsLayer = true
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        registerForDraggedTypes([.fileURL])
+        wantsLayer = true
+    }
+
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        dropHighlighted = true
+        return .copy
+    }
+
+    override func draggingExited(_ sender: NSDraggingInfo?) {
+        dropHighlighted = false
+    }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        dropHighlighted = false
+        guard let items = sender.draggingPasteboard.readObjects(forClasses: [NSURL.self]) as? [URL] else {
+            return false
+        }
+        onFiles?(items)
+        return true
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        guard dropHighlighted else { return }
+        NSColor.controlAccentColor.setStroke()
+        let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 1, dy: 1), xRadius: 6, yRadius: 6)
+        path.lineWidth = 3
+        path.stroke()
+    }
+}
+
+@MainActor
 final class DropView: NSView {
     var onFiles: (([URL]) -> Void)?
     var highlighted = false {
@@ -190,36 +237,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
 
         let root = NSStackView()
         root.orientation = .vertical
-        root.spacing = 14
+        root.spacing = 10
         root.edgeInsets = NSEdgeInsets(top: 4, left: 18, bottom: 18, right: 18)
         root.translatesAutoresizingMaskIntoConstraints = false
 
-        let drop = DropView()
-        drop.translatesAutoresizingMaskIntoConstraints = false
-        drop.heightAnchor.constraint(equalToConstant: 132).isActive = true
-        drop.onFiles = { [weak self] urls in self?.addFiles(urls, allowReplacement: true) }
-        let formatInfo = NSTextField(labelWithString: "PERKONS: Voice 4 / Algorithm 3 only. Output: 1.wav, 2.wav, 3.wav, mono 16-bit WAV, 48 kHz, max 256 KB total.")
+        let formatInfo = NSTextField(labelWithString: "PERKONS sample converter: Voice 4 / Algorithm 3 only; output is 1.wav, 2.wav, 3.wav, mono 16-bit WAV, 48 kHz, max 256 KB total.")
         formatInfo.textColor = .labelColor
         formatInfo.font = .systemFont(ofSize: 12, weight: .medium)
-        formatInfo.alignment = .center
+        formatInfo.alignment = .left
         formatInfo.lineBreakMode = .byTruncatingTail
         formatInfo.translatesAutoresizingMaskIntoConstraints = false
-        drop.addSubview(formatInfo)
+        formatInfo.heightAnchor.constraint(equalToConstant: 18).isActive = true
+        formatInfo.setContentCompressionResistancePriority(.required, for: .vertical)
+
+        let drop = DropView()
+        drop.translatesAutoresizingMaskIntoConstraints = false
+        drop.heightAnchor.constraint(equalToConstant: 120).isActive = true
+        drop.onFiles = { [weak self] urls in self?.addFiles(urls, allowReplacement: true) }
         let dropLabel = NSTextField(labelWithString: "Drop WAV files here")
         dropLabel.font = .systemFont(ofSize: 18, weight: .medium)
         dropLabel.alignment = .center
         drop.addSubview(dropLabel)
         dropLabel.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            formatInfo.leadingAnchor.constraint(equalTo: drop.leadingAnchor, constant: 12),
-            formatInfo.trailingAnchor.constraint(equalTo: drop.trailingAnchor, constant: -12),
-            formatInfo.topAnchor.constraint(equalTo: drop.topAnchor, constant: 12),
             dropLabel.centerXAnchor.constraint(equalTo: drop.centerXAnchor),
-            dropLabel.centerYAnchor.constraint(equalTo: drop.centerYAnchor, constant: 14)
+            dropLabel.centerYAnchor.constraint(equalTo: drop.centerYAnchor)
         ])
 
         configureFileTable()
-        let fileScroll = NSScrollView()
+        let fileScroll = FileDropScrollView()
+        fileScroll.onFiles = { [weak self] urls in self?.addFiles(urls, allowReplacement: true) }
         fileScroll.documentView = fileTable
         fileScroll.hasVerticalScroller = true
         fileScroll.heightAnchor.constraint(equalToConstant: 112).isActive = true
@@ -270,6 +317,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         openHistoryButton.target = self
         openHistoryButton.action = #selector(openHistoryFolder)
 
+        root.addArrangedSubview(formatInfo)
         root.addArrangedSubview(drop)
         root.addArrangedSubview(fileScroll)
         root.addArrangedSubview(controls)
