@@ -25,10 +25,10 @@ try FileManager.default.createDirectory(at: output, withIntermediateDirectories:
 let imageWidth = CGFloat(cgImage.width)
 let imageHeight = CGFloat(cgImage.height)
 let deviceCrop = CGRect(
-    x: imageWidth * 0.02,
-    y: imageHeight * 0.24,
-    width: imageWidth * 0.96,
-    height: imageHeight * 0.58
+    x: imageWidth * 0.08,
+    y: imageHeight * 0.30,
+    width: imageWidth * 0.84,
+    height: imageHeight * 0.42
 )
 
 for (name, size) in sizes {

@@ -126,6 +126,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
     private var playingList: PlaybackList?
     private var playingIndex: Int?
     private var isRefreshingPlaybackTables = false
+    private var renamePanel: NSPanel?
     private let appSupport: URL
     private let historyRoot: URL
 
@@ -626,24 +627,85 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         let row = historyTable.selectedRow
         guard row >= 0 && row < history.count else { return }
 
-        let alert = NSAlert()
-        alert.messageText = "Rename History Set"
-        alert.informativeText = "This changes the display name stored in the history manifest."
-        alert.addButton(withTitle: "Save")
-        alert.addButton(withTitle: "Cancel")
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 420, height: 150),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        panel.title = "Rename History Set"
+        panel.isReleasedWhenClosed = false
 
-        let input = NSTextField(frame: NSRect(x: 0, y: 0, width: 360, height: 24))
+        let content = NSView()
+        panel.contentView = content
+
+        let label = NSTextField(labelWithString: "Name")
+        let input = NSTextField()
         input.stringValue = history[row].displayTitle
-        alert.accessoryView = input
-        window.beginSheet(alert.window) { [weak self] response in
-            guard let self else { return }
-            if response == .alertFirstButtonReturn {
-                self.history[row].title = input.stringValue
-                self.saveHistoryManifest(self.history[row])
-                self.historyTable.reloadData()
-                self.setStatus("History set renamed.", error: false)
-            }
+
+        let saveButton = NSButton(title: "Save", target: nil, action: nil)
+        saveButton.bezelStyle = .rounded
+        saveButton.keyEquivalent = "\r"
+
+        let cancelButton = NSButton(title: "Cancel", target: nil, action: nil)
+        cancelButton.bezelStyle = .rounded
+        cancelButton.keyEquivalent = "\u{1b}"
+
+        let buttons = NSStackView(views: [cancelButton, saveButton])
+        buttons.orientation = .horizontal
+        buttons.spacing = 8
+        buttons.alignment = .centerY
+
+        [label, input, buttons].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            content.addSubview($0)
         }
+
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 20),
+            label.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -20),
+            label.topAnchor.constraint(equalTo: content.topAnchor, constant: 20),
+            input.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 20),
+            input.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -20),
+            input.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 8),
+            buttons.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -20),
+            buttons.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -18)
+        ])
+
+        cancelButton.target = self
+        cancelButton.action = #selector(cancelRenamePanel(_:))
+        saveButton.target = self
+        saveButton.action = #selector(saveRenamePanel(_:))
+        saveButton.tag = row
+        panel.initialFirstResponder = input
+        panel.makeFirstResponder(input)
+        renamePanel = panel
+        window.beginSheet(panel)
+    }
+
+    @objc private func cancelRenamePanel(_ sender: NSButton) {
+        guard let panel = sender.window else { return }
+        window.endSheet(panel)
+        renamePanel = nil
+    }
+
+    @objc private func saveRenamePanel(_ sender: NSButton) {
+        guard let panel = sender.window,
+              let content = panel.contentView,
+              let input = content.subviews.compactMap({ $0 as? NSTextField }).last else {
+            return
+        }
+        let row = sender.tag
+        guard row >= 0 && row < history.count else {
+            window.endSheet(panel)
+            return
+        }
+        history[row].title = input.stringValue
+        saveHistoryManifest(history[row])
+        historyTable.reloadData()
+        setStatus("History set renamed.", error: false)
+        window.endSheet(panel)
+        renamePanel = nil
     }
 
     private func saveHistoryManifest(_ set: ConversionSet) {
