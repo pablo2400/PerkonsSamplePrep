@@ -229,6 +229,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         buildWindow()
     }
 
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag {
+            window.makeKeyAndOrderFront(nil)
+        }
+        sender.activate(ignoringOtherApps: true)
+        return true
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        true
+    }
+
     private func buildWindow() {
         window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 820, height: 710),
@@ -237,6 +249,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
             defer: false
         )
         window.title = "PERKONS HD-01 Sample Prep"
+        window.isReleasedWhenClosed = false
         window.minSize = NSSize(width: 820, height: 710)
         window.setContentSize(NSSize(width: 820, height: 710))
         window.center()
