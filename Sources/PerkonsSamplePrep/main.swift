@@ -178,14 +178,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
 
     private func buildWindow() {
         window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 820, height: 680),
+            contentRect: NSRect(x: 0, y: 0, width: 820, height: 710),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
         window.title = "PERKONS HD-01 Sample Prep"
-        window.minSize = NSSize(width: 820, height: 680)
-        window.setContentSize(NSSize(width: 820, height: 680))
+        window.minSize = NSSize(width: 820, height: 710)
+        window.setContentSize(NSSize(width: 820, height: 710))
         window.center()
 
         let root = NSStackView()
@@ -194,23 +194,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         root.edgeInsets = NSEdgeInsets(top: 4, left: 18, bottom: 18, right: 18)
         root.translatesAutoresizingMaskIntoConstraints = false
 
-        let formatInfo = NSTextField(labelWithString: "PERKONS user samples load only on Voice 4 / Algorithm 3; output is always 3 files: mono 16-bit WAV, 48 kHz, max 256 KB total.")
-        formatInfo.textColor = .secondaryLabelColor
-        formatInfo.font = .systemFont(ofSize: 12)
-        formatInfo.lineBreakMode = .byTruncatingTail
-
         let drop = DropView()
         drop.translatesAutoresizingMaskIntoConstraints = false
         drop.heightAnchor.constraint(equalToConstant: 132).isActive = true
         drop.onFiles = { [weak self] urls in self?.addFiles(urls, allowReplacement: true) }
+        let formatInfo = NSTextField(labelWithString: "PERKONS: Voice 4 / Algorithm 3 only. Output: 1.wav, 2.wav, 3.wav, mono 16-bit WAV, 48 kHz, max 256 KB total.")
+        formatInfo.textColor = .labelColor
+        formatInfo.font = .systemFont(ofSize: 12, weight: .medium)
+        formatInfo.alignment = .center
+        formatInfo.lineBreakMode = .byTruncatingTail
+        formatInfo.translatesAutoresizingMaskIntoConstraints = false
+        drop.addSubview(formatInfo)
         let dropLabel = NSTextField(labelWithString: "Drop WAV files here")
         dropLabel.font = .systemFont(ofSize: 18, weight: .medium)
         dropLabel.alignment = .center
         drop.addSubview(dropLabel)
         dropLabel.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
+            formatInfo.leadingAnchor.constraint(equalTo: drop.leadingAnchor, constant: 12),
+            formatInfo.trailingAnchor.constraint(equalTo: drop.trailingAnchor, constant: -12),
+            formatInfo.topAnchor.constraint(equalTo: drop.topAnchor, constant: 12),
             dropLabel.centerXAnchor.constraint(equalTo: drop.centerXAnchor),
-            dropLabel.centerYAnchor.constraint(equalTo: drop.centerYAnchor)
+            dropLabel.centerYAnchor.constraint(equalTo: drop.centerYAnchor, constant: 14)
         ])
 
         configureFileTable()
@@ -265,7 +270,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         openHistoryButton.target = self
         openHistoryButton.action = #selector(openHistoryFolder)
 
-        root.addArrangedSubview(formatInfo)
         root.addArrangedSubview(drop)
         root.addArrangedSubview(fileScroll)
         root.addArrangedSubview(controls)

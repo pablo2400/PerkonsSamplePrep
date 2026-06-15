@@ -34,7 +34,7 @@ let deviceCrop = CGRect(
 for (name, size) in sizes {
     let rect = NSRect(x: 0, y: 0, width: size, height: size)
     let sizeValue = CGFloat(size)
-    let iconRect = rect.insetBy(dx: sizeValue * 0.22, dy: sizeValue * 0.22)
+    let iconRect = rect.insetBy(dx: sizeValue * 0.16, dy: sizeValue * 0.16)
     let cornerRadius = sizeValue * 0.08
     let deviceRect = iconRect.insetBy(dx: sizeValue * 0.02, dy: sizeValue * 0.02)
     let bitmap = NSBitmapImageRep(
