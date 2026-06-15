@@ -188,7 +188,7 @@ final class DropView: NSView {
 }
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTableViewDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTableViewDataSource, NSTableViewDelegate {
     private var window: NSWindow!
     private let fileTable = SampleTableView()
     private let outputTable = SampleTableView()
@@ -224,6 +224,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        buildMainMenu()
         createFolders()
         loadHistory()
         buildWindow()
@@ -237,8 +238,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         return true
     }
 
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        true
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        sender.miniaturize(nil)
+        return false
+    }
+
+    private func buildMainMenu() {
+        let mainMenu = NSMenu()
+        let appMenuItem = NSMenuItem()
+        let appMenu = NSMenu()
+        let quitItem = NSMenuItem(
+            title: "Quit PERKONS Sample Prep",
+            action: #selector(NSApplication.terminate(_:)),
+            keyEquivalent: "q"
+        )
+        quitItem.target = NSApp
+        appMenu.addItem(quitItem)
+        appMenuItem.submenu = appMenu
+        mainMenu.addItem(appMenuItem)
+        NSApp.mainMenu = mainMenu
     }
 
     private func buildWindow() {
@@ -249,6 +267,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
             defer: false
         )
         window.title = "PERKONS HD-01 Sample Prep"
+        window.delegate = self
         window.isReleasedWhenClosed = false
         window.minSize = NSSize(width: 820, height: 710)
         window.setContentSize(NSSize(width: 820, height: 710))

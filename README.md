@@ -61,3 +61,14 @@ PerkonsSamplePrep.app/Contents/Resources/perkons-bg.png
 ## History Names
 
 History rows have an editable display name. Select a history row and use `Rename Selected...`.
+
+## License
+
+The source code is available under the
+[PolyForm Noncommercial License 1.0.0](LICENSE).
+
+You may use, modify, and share the software for noncommercial purposes.
+Commercial use is not permitted under this license.
+
+Because commercial use is restricted, this is a source-available license rather
+than an OSI-approved open-source license.
