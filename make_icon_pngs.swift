@@ -33,6 +33,10 @@ let deviceCrop = CGRect(
 
 for (name, size) in sizes {
     let rect = NSRect(x: 0, y: 0, width: size, height: size)
+    let sizeValue = CGFloat(size)
+    let iconRect = rect.insetBy(dx: sizeValue * 0.10, dy: sizeValue * 0.10)
+    let cornerRadius = sizeValue * 0.18
+    let deviceRect = iconRect.insetBy(dx: sizeValue * 0.035, dy: sizeValue * 0.035)
     let bitmap = NSBitmapImageRep(
         bitmapDataPlanes: nil,
         pixelsWide: size,
@@ -47,21 +51,41 @@ for (name, size) in sizes {
     )!
     NSGraphicsContext.saveGraphicsState()
     NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
-    NSColor.black.setFill()
+    NSColor.clear.setFill()
     rect.fill()
+
+    let shadow = NSShadow()
+    shadow.shadowColor = NSColor.black.withAlphaComponent(0.26)
+    shadow.shadowBlurRadius = max(1, sizeValue * 0.035)
+    shadow.shadowOffset = NSSize(width: 0, height: -sizeValue * 0.018)
+    shadow.set()
+
+    let plate = NSBezierPath(roundedRect: iconRect, xRadius: cornerRadius, yRadius: cornerRadius)
+    NSColor(calibratedWhite: 0.035, alpha: 1.0).setFill()
+    plate.fill()
+    NSGraphicsContext.current?.cgContext.setShadow(offset: .zero, blur: 0, color: nil)
+
+    NSGraphicsContext.current?.cgContext.saveGState()
+    plate.addClip()
     if let cropped = cgImage.cropping(to: deviceCrop) {
         let croppedImage = NSImage(cgImage: cropped, size: NSSize(width: cropped.width, height: cropped.height))
         let croppedSize = croppedImage.size
-        let scale = max(rect.width / croppedSize.width, rect.height / croppedSize.height)
+        let scale = max(deviceRect.width / croppedSize.width, deviceRect.height / croppedSize.height)
         let drawSize = NSSize(width: croppedSize.width * scale, height: croppedSize.height * scale)
         let drawRect = NSRect(
-            x: (rect.width - drawSize.width) / 2,
-            y: (rect.height - drawSize.height) / 2,
+            x: deviceRect.midX - drawSize.width / 2,
+            y: deviceRect.midY - drawSize.height / 2,
             width: drawSize.width,
             height: drawSize.height
         )
         croppedImage.draw(in: drawRect, from: .zero, operation: .sourceOver, fraction: 1.0)
     }
+    NSGraphicsContext.current?.cgContext.restoreGState()
+
+    NSColor.white.withAlphaComponent(0.10).setStroke()
+    plate.lineWidth = max(1, sizeValue * 0.006)
+    plate.stroke()
+
     NSGraphicsContext.restoreGraphicsState()
     let data = bitmap.representation(using: .png, properties: [:])!
     try data.write(to: output.appendingPathComponent(name))
