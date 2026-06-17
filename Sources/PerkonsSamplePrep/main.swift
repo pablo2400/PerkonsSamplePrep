@@ -232,6 +232,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTa
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         if !flag {
+            if window.isMiniaturized {
+                window.deminiaturize(nil)
+            }
             window.makeKeyAndOrderFront(nil)
         }
         sender.activate(ignoringOtherApps: true)
@@ -239,7 +242,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTa
     }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
-        sender.miniaturize(nil)
+        sender.orderOut(nil)
         return false
     }
 
@@ -247,6 +250,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTa
         let mainMenu = NSMenu()
         let appMenuItem = NSMenuItem()
         let appMenu = NSMenu()
+        let aboutItem = NSMenuItem(
+            title: "About PERKONS Sample Prep",
+            action: #selector(showAbout),
+            keyEquivalent: ""
+        )
+        aboutItem.target = self
+        appMenu.addItem(aboutItem)
+        appMenu.addItem(.separator())
         let quitItem = NSMenuItem(
             title: "Quit PERKONS Sample Prep",
             action: #selector(NSApplication.terminate(_:)),
@@ -257,6 +268,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTa
         appMenuItem.submenu = appMenu
         mainMenu.addItem(appMenuItem)
         NSApp.mainMenu = mainMenu
+    }
+
+    @objc private func showAbout() {
+        let credits = NSMutableAttributedString(
+            string: """
+            Converts three WAV files for Erica Synths PERKONS HD-01 user samples.
+
+            Copyright (c) 2026 Pawel Lamik.
+            Licensed for noncommercial use under PolyForm Noncommercial License 1.0.0.
+
+            Development note: this app was built with AI-assisted coding.
+            """,
+            attributes: [
+                .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
+                .foregroundColor: NSColor.labelColor
+            ]
+        )
+
+        NSApp.orderFrontStandardAboutPanel(options: [
+            .applicationName: "PERKONS Sample Prep",
+            .applicationVersion: "1.0.6",
+            .version: "Build 7",
+            .credits: credits
+        ])
     }
 
     private func buildWindow() {

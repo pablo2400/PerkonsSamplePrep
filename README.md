@@ -2,6 +2,8 @@
 
 Small macOS app for preparing exactly three user samples for the Erica Synths PERKONS HD-01.
 
+This is a small source-available utility built with AI-assisted coding.
+
 ## Workflow
 
 - Drop WAV files into the app or use `Add WAV...`.
@@ -64,6 +66,8 @@ History rows have an editable display name. Select a history row and use `Rename
 
 ## License
 
+Copyright (c) 2026 Pawel Lamik.
+
 The source code is available under the
 [PolyForm Noncommercial License 1.0.0](LICENSE).
 
@@ -72,3 +76,7 @@ Commercial use is not permitted under this license.
 
 Because commercial use is restricted, this is a source-available license rather
 than an OSI-approved open-source license.
+
+In plain language: feel free to use it, share it, fork it, and modify it for
+personal or other noncommercial purposes. Do not sell it, bundle it into paid
+products, or use it commercially without separate permission.
