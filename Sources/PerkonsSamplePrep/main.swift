@@ -212,6 +212,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTa
     private var playingIndex: Int?
     private var isRefreshingPlaybackTables = false
     private var renamePanel: NSPanel?
+    private var feedbackPanel: NSPanel?
+    private var feedbackTypePopup: NSPopUpButton?
+    private var feedbackTitleField: NSTextField?
+    private var feedbackBodyTextView: NSTextView?
     private let appSupport: URL
     private let historyRoot: URL
 
@@ -257,6 +261,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTa
         )
         aboutItem.target = self
         appMenu.addItem(aboutItem)
+        let feedbackItem = NSMenuItem(
+            title: "Report Bug or Request Feature...",
+            action: #selector(showFeedbackPanel),
+            keyEquivalent: ""
+        )
+        feedbackItem.target = self
+        appMenu.addItem(feedbackItem)
         appMenu.addItem(.separator())
         let quitItem = NSMenuItem(
             title: "Quit PERKONS Sample Prep",
@@ -292,6 +303,170 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTa
             .version: "Build 7",
             .credits: credits
         ])
+    }
+
+    @objc private func showFeedbackPanel() {
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 560, height: 420),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        panel.title = "Report Bug or Request Feature"
+        panel.isReleasedWhenClosed = false
+
+        let content = NSView()
+        panel.contentView = content
+
+        let note = NSTextField(wrappingLabelWithString: "This project is maintained in private time on a best-effort basis. There is no guarantee when, or if, a bug will be fixed or a feature request will be implemented.")
+        note.textColor = .secondaryLabelColor
+
+        let typeLabel = NSTextField(labelWithString: "Type")
+        let typePopup = NSPopUpButton()
+        typePopup.addItems(withTitles: ["Bug report", "Feature request"])
+
+        let titleLabel = NSTextField(labelWithString: "Title")
+        let titleField = NSTextField()
+        titleField.placeholderString = "Short summary"
+
+        let bodyLabel = NSTextField(labelWithString: "Description")
+        let bodyScroll = NSScrollView()
+        bodyScroll.hasVerticalScroller = true
+        bodyScroll.borderType = .bezelBorder
+        let bodyTextView = NSTextView()
+        bodyTextView.font = .systemFont(ofSize: NSFont.systemFontSize)
+        bodyTextView.isRichText = false
+        bodyTextView.isAutomaticQuoteSubstitutionEnabled = false
+        bodyTextView.isAutomaticDashSubstitutionEnabled = false
+        bodyTextView.string = """
+        What happened / what would you like?
+
+        Steps to reproduce, if this is a bug:
+        1.
+        2.
+        3.
+
+        Expected result:
+
+        Actual result:
+
+        macOS version:
+        """
+        bodyScroll.documentView = bodyTextView
+
+        let openButton = NSButton(title: "Open GitHub Issue", target: nil, action: nil)
+        openButton.bezelStyle = .rounded
+        openButton.keyEquivalent = "\r"
+
+        let cancelButton = NSButton(title: "Cancel", target: nil, action: nil)
+        cancelButton.bezelStyle = .rounded
+        cancelButton.keyEquivalent = "\u{1b}"
+
+        let buttons = NSStackView(views: [cancelButton, openButton])
+        buttons.orientation = .horizontal
+        buttons.spacing = 8
+        buttons.alignment = .centerY
+
+        [note, typeLabel, typePopup, titleLabel, titleField, bodyLabel, bodyScroll, buttons].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            content.addSubview($0)
+        }
+
+        NSLayoutConstraint.activate([
+            note.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 20),
+            note.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -20),
+            note.topAnchor.constraint(equalTo: content.topAnchor, constant: 18),
+
+            typeLabel.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 20),
+            typeLabel.topAnchor.constraint(equalTo: note.bottomAnchor, constant: 16),
+            typePopup.leadingAnchor.constraint(equalTo: typeLabel.trailingAnchor, constant: 12),
+            typePopup.centerYAnchor.constraint(equalTo: typeLabel.centerYAnchor),
+            typePopup.widthAnchor.constraint(equalToConstant: 180),
+
+            titleLabel.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 20),
+            titleLabel.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -20),
+            titleLabel.topAnchor.constraint(equalTo: typePopup.bottomAnchor, constant: 14),
+            titleField.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 20),
+            titleField.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -20),
+            titleField.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 6),
+
+            bodyLabel.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 20),
+            bodyLabel.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -20),
+            bodyLabel.topAnchor.constraint(equalTo: titleField.bottomAnchor, constant: 14),
+            bodyScroll.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 20),
+            bodyScroll.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -20),
+            bodyScroll.topAnchor.constraint(equalTo: bodyLabel.bottomAnchor, constant: 6),
+            bodyScroll.bottomAnchor.constraint(equalTo: buttons.topAnchor, constant: -16),
+
+            buttons.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -20),
+            buttons.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -18)
+        ])
+
+        cancelButton.target = self
+        cancelButton.action = #selector(cancelFeedbackPanel(_:))
+        openButton.target = self
+        openButton.action = #selector(openGitHubIssue(_:))
+
+        feedbackPanel = panel
+        feedbackTypePopup = typePopup
+        feedbackTitleField = titleField
+        feedbackBodyTextView = bodyTextView
+        panel.initialFirstResponder = titleField
+        panel.makeFirstResponder(titleField)
+        window.beginSheet(panel)
+    }
+
+    @objc private func cancelFeedbackPanel(_ sender: NSButton) {
+        guard let panel = sender.window else { return }
+        closeFeedbackPanel(panel)
+    }
+
+    @objc private func openGitHubIssue(_ sender: NSButton) {
+        guard let panel = sender.window,
+              let typePopup = feedbackTypePopup,
+              let titleField = feedbackTitleField,
+              let bodyTextView = feedbackBodyTextView else {
+            return
+        }
+
+        let selectedType = typePopup.titleOfSelectedItem ?? "Bug report"
+        let isBug = selectedType == "Bug report"
+        let rawTitle = titleField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let titlePrefix = isBug ? "[Bug]" : "[Feature]"
+        let title = rawTitle.isEmpty ? "\(titlePrefix) " : "\(titlePrefix) \(rawTitle)"
+        let label = isBug ? "bug" : "enhancement"
+        let body = """
+        Type: \(selectedType)
+
+        Maintenance note:
+        This project is maintained in private time on a best-effort basis. There is no guarantee when, or if, a bug will be fixed or a feature request will be implemented.
+
+        ---
+
+        \(bodyTextView.string)
+        """
+
+        var components = URLComponents(string: "https://github.com/pablo2400/PerkonsSamplePrep/issues/new")!
+        components.queryItems = [
+            URLQueryItem(name: "title", value: title),
+            URLQueryItem(name: "body", value: body),
+            URLQueryItem(name: "labels", value: label)
+        ]
+
+        guard let url = components.url else {
+            setStatus("Could not create GitHub issue URL.", error: true)
+            return
+        }
+        NSWorkspace.shared.open(url)
+        closeFeedbackPanel(panel)
+    }
+
+    private func closeFeedbackPanel(_ panel: NSWindow) {
+        window.endSheet(panel)
+        feedbackPanel = nil
+        feedbackTypePopup = nil
+        feedbackTitleField = nil
+        feedbackBodyTextView = nil
     }
 
     private func buildWindow() {

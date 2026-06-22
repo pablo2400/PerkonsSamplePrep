@@ -64,6 +64,15 @@ PerkonsSamplePrep.app/Contents/Resources/perkons-bg.png
 
 History rows have an editable display name. Select a history row and use `Rename Selected...`.
 
+## Feedback
+
+Use `PERKONS Sample Prep > Report Bug or Request Feature...` to open a
+prefilled GitHub issue for bugs and feature requests.
+
+This project is maintained in private time on a best-effort basis. There is no
+guarantee when, or if, a bug will be fixed or a feature request will be
+implemented.
+
 ## License
 
 Copyright (c) 2026 Pawel Lamik.
