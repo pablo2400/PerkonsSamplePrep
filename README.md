@@ -4,6 +4,51 @@ Small macOS app for preparing exactly three user samples for the Erica Synths PE
 
 This is a small source-available utility built with AI-assisted coding.
 
+![PERKONS HD-01 Sample Prep screenshot](docs/screenshot.jpg)
+
+## Status
+
+This is an early, best-effort macOS utility that I originally made for my own
+PERKONS HD-01 sample-prep workflow. It may be useful to others, but it is not a
+polished commercial product.
+
+Feedback, bug reports, and small feature requests are welcome.
+
+## Requirements
+
+- macOS 14 Sonoma or newer.
+- A PERKONS HD-01 workflow that expects three user samples named `1.wav`,
+  `2.wav`, and `3.wav`.
+- The current prebuilt app bundle is for Apple Silicon (`arm64`).
+
+There is currently no Windows version and no web version. If there is enough
+interest, other platforms may be considered later.
+
+## Download and First Run
+
+If a prebuilt release is available, download the app from GitHub Releases,
+unzip it, and run `PerkonsSamplePrep.app`.
+
+The current app bundle is ad-hoc signed and is not Apple-notarized. macOS may
+show a Gatekeeper warning the first time you open it. If you are not comfortable
+running non-notarized apps from independent developers, build it from source
+instead.
+
+## Build from Source
+
+If you prefer not to run the prebuilt, non-notarized app bundle, review the
+source code and build it locally:
+
+```text
+swift build -c release
+```
+
+The release executable is written to:
+
+```text
+.build/release/PerkonsSamplePrep
+```
+
 ## Workflow
 
 - Drop WAV files into the app or use `Add WAV...`.
@@ -44,10 +89,10 @@ Each history set contains `1.wav`, `2.wav`, `3.wav`, and a `manifest.json` with 
 
 ## App
 
-Run:
+From a local checkout, run:
 
 ```text
-/Users/pawel/PerkonsSamplePrep/PerkonsSamplePrep.app
+PerkonsSamplePrep.app
 ```
 
 ## Background Image
@@ -63,6 +108,18 @@ PerkonsSamplePrep.app/Contents/Resources/perkons-bg.png
 ## History Names
 
 History rows have an editable display name. Select a history row and use `Rename Selected...`.
+
+## Known Limitations
+
+- macOS only.
+- No Windows build yet.
+- No web version yet.
+- The current prebuilt app bundle is Apple Silicon (`arm64`) only.
+- The app is not Apple-notarized at this stage.
+- Testing has mainly covered my own PERKONS sample-prep workflow and a small
+  set of WAV files.
+- The app focuses only on preparing three PERKONS-ready WAV files. It is not a
+  general-purpose sample editor.
 
 ## Feedback
 
